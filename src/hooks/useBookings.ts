@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/database.types';
+import { Tables, InsertTables, UpdateTables } from '@/types/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export type Booking = Tables<'bookings'>;
+export type BookingInsert = InsertTables<'bookings'>;
+export type BookingUpdate = UpdateTables<'bookings'>;
 
-interface BookingInsert {
+interface CreateBookingInput {
   movie_id: string;
   show_time: string;
   booking_date: string;
@@ -14,22 +16,26 @@ interface BookingInsert {
   total_amount: number;
 }
 
+// Type-safe helper for bookings table operations
+const getBookingsTable = () => {
+  return (supabase as any).from('bookings');
+};
+
 export const useBookings = () => {
   const { user } = useAuth();
   
   return useQuery({
     queryKey: ['bookings', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Booking[]> => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('bookings')
+      const { data, error } = await getBookingsTable()
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return (data as Booking[]) ?? [];
     },
     enabled: !!user,
   });
@@ -41,26 +47,27 @@ export const useCreateBooking = () => {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async (booking: BookingInsert) => {
+    mutationFn: async (booking: CreateBookingInput): Promise<Booking> => {
       if (!user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({
-          movie_id: booking.movie_id,
-          show_time: booking.show_time,
-          booking_date: booking.booking_date,
-          seats: booking.seats,
-          total_amount: booking.total_amount,
-          user_id: user.id,
-          payment_status: 'pending' as const,
-          booking_status: 'confirmed' as const,
-        })
+      const insertData: BookingInsert = {
+        movie_id: booking.movie_id,
+        show_time: booking.show_time,
+        booking_date: booking.booking_date,
+        seats: booking.seats,
+        total_amount: booking.total_amount,
+        user_id: user.id,
+        payment_status: 'pending',
+        booking_status: 'confirmed',
+      };
+      
+      const { data, error } = await getBookingsTable()
+        .insert(insertData)
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      return data as Booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -84,7 +91,7 @@ export const useMockPayment = () => {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async (bookingId: string) => {
+    mutationFn: async (bookingId: string): Promise<Booking> => {
       toast({
         title: '💳 Processing Payment',
         description: 'Please wait while we process your payment...',
@@ -92,15 +99,16 @@ export const useMockPayment = () => {
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({ payment_status: 'paid' as const })
+      const updateData: BookingUpdate = { payment_status: 'paid' };
+      
+      const { data, error } = await getBookingsTable()
+        .update(updateData)
         .eq('id', bookingId)
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      return data as Booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -130,16 +138,17 @@ export const useCancelBooking = () => {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async (bookingId: string) => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({ booking_status: 'cancelled' as const })
+    mutationFn: async (bookingId: string): Promise<Booking> => {
+      const updateData: BookingUpdate = { booking_status: 'cancelled' };
+      
+      const { data, error } = await getBookingsTable()
+        .update(updateData)
         .eq('id', bookingId)
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      return data as Booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
