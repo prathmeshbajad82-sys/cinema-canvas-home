@@ -1,4 +1,5 @@
-import { MapPin, Sparkles } from 'lucide-react';
+import { format } from 'date-fns';
+import { MapPin, Sparkles, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Theater, TheaterShowtime, getTheaterById } from '@/data/theaters';
@@ -8,14 +9,20 @@ interface TheaterListProps {
   theaterShowtimes: TheaterShowtime[];
   basePrice: number;
   onSelectShowtime: (theaterId: string, time: string, price: number) => void;
+  selectedDate?: Date;
 }
 
-const TheaterList = ({ movieName, theaterShowtimes, basePrice, onSelectShowtime }: TheaterListProps) => {
+const TheaterList = ({ movieName, theaterShowtimes, basePrice, onSelectShowtime, selectedDate }: TheaterListProps) => {
+  const displayDate = selectedDate ? format(selectedDate, 'EEE, MMM d') : 'Today';
+  
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-foreground">
-        Theaters Showing <span className="text-primary">{movieName}</span>
-      </h2>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <Clock className="w-4 h-4 text-primary" />
+          Showtimes for <span className="text-primary">{displayDate}</span>
+        </h2>
+      </div>
       
       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
         {theaterShowtimes.map((showtime) => {
