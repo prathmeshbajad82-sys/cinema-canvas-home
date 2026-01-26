@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Calendar, Clock, Ticket, CreditCard, Loader2, MapPin } from 'lucide-react';
+import { Calendar, Clock, Ticket, CreditCard, Loader2, MapPin, CalendarDays } from 'lucide-react';
+import DateSelector from '@/components/DateSelector';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -33,12 +34,13 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
   const mockPayment = useMockPayment();
   
   const [step, setStep] = useState<BookingStep>('theaters');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedShowtime, setSelectedShowtime] = useState<SelectedShowtime | null>(null);
   const [seatQuantity, setSeatQuantity] = useState(1);
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
-  const bookingDate = format(new Date(), 'yyyy-MM-dd');
+  const bookingDate = format(selectedDate, 'yyyy-MM-dd');
   const theaterShowtimes = getTheaterShowtimes(movie.show_times);
   const selectedTheater = selectedShowtime ? getTheaterById(selectedShowtime.theaterId) : null;
   const totalAmount = selectedShowtime ? selectedShowtime.price * seatQuantity : 0;
@@ -96,6 +98,7 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
   const handleClose = () => {
     onOpenChange(false);
     setStep('theaters');
+    setSelectedDate(new Date());
     setSelectedShowtime(null);
     setSeatQuantity(1);
     setSelectedSeatIds([]);
@@ -146,14 +149,28 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Step 1: Theater & Showtime Selection */}
+          {/* Step 1: Date & Theater & Showtime Selection */}
           {step === 'theaters' && (
-            <div className="py-4">
+            <div className="py-4 space-y-6">
+              {/* Date Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <span>Select Date</span>
+                </div>
+                <DateSelector
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                />
+              </div>
+
+              {/* Theaters & Showtimes for selected date */}
               <TheaterList
                 movieName={movie.title}
                 theaterShowtimes={theaterShowtimes}
                 basePrice={movie.ticket_price}
                 onSelectShowtime={handleSelectShowtime}
+                selectedDate={selectedDate}
               />
             </div>
           )}
@@ -170,7 +187,7 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4 text-primary" />
-                    <span>{format(new Date(), 'MMM d, yyyy')}</span>
+                    <span>{format(selectedDate, 'MMM d, yyyy')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4 text-primary" />
@@ -297,7 +314,7 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Date</span>
-                  <span className="font-medium">{format(new Date(), 'MMM d, yyyy')}</span>
+                  <span className="font-medium">{format(selectedDate, 'MMM d, yyyy')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Time</span>
