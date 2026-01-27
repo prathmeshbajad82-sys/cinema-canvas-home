@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, InsertTables, UpdateTables } from '@/types/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { mapDatabaseError, mapPaymentError } from '@/lib/errorHandling';
 
 export type Booking = Tables<'bookings'>;
 export type BookingInsert = InsertTables<'bookings'>;
@@ -84,7 +85,7 @@ export const useCreateBooking = () => {
       toast({
         variant: 'destructive',
         title: 'Booking Failed',
-        description: error.message,
+        description: mapDatabaseError(error),
       });
     },
   });
@@ -131,7 +132,7 @@ export const useMockPayment = () => {
       toast({
         variant: 'destructive',
         title: 'Payment Failed',
-        description: error.message,
+        description: mapPaymentError(error),
       });
     },
   });
@@ -165,7 +166,7 @@ export const useCancelBooking = () => {
       toast({
         variant: 'destructive',
         title: 'Cancellation Failed',
-        description: error.message,
+        description: mapDatabaseError(error),
       });
     },
   });
