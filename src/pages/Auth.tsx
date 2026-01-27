@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { mapAuthError } from '@/lib/errorHandling';
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -60,19 +61,11 @@ const Auth = () => {
         const { error } = await signIn(email, password);
         
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Invalid email or password. Please try again.',
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: error.message,
-            });
-          }
+          toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: mapAuthError(error),
+          });
         } else {
           toast({
             title: 'Welcome back!',
@@ -84,19 +77,11 @@ const Auth = () => {
         const { error } = await signUp(email, password, fullName);
         
         if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              variant: 'destructive',
-              title: 'Sign Up Failed',
-              description: 'This email is already registered. Please login instead.',
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Sign Up Failed',
-              description: error.message,
-            });
-          }
+          toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description: mapAuthError(error),
+          });
         } else {
           toast({
             title: 'Account Created!',
