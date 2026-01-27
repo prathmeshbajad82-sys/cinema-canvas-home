@@ -10,6 +10,8 @@ export type BookingUpdate = UpdateTables<'bookings'>;
 
 interface CreateBookingInput {
   movie_id: string;
+  theater_name: string;
+  theater_location: string;
   show_time: string;
   booking_date: string;
   seats: number;
@@ -50,12 +52,14 @@ export const useCreateBooking = () => {
     mutationFn: async (booking: CreateBookingInput): Promise<Booking> => {
       if (!user) throw new Error('User not authenticated');
       
-      const insertData: BookingInsert = {
+      const insertData = {
         movie_id: booking.movie_id,
-        show_time: booking.show_time,
+        theater_name: booking.theater_name,
+        theater_location: booking.theater_location,
+        showtime: booking.show_time,
         booking_date: booking.booking_date,
         seats: booking.seats,
-        total_amount: booking.total_amount,
+        total_price: booking.total_amount,
         user_id: user.id,
         payment_status: 'pending',
         booking_status: 'confirmed',
