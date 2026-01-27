@@ -62,11 +62,13 @@ const BookingDialog = ({ movie, open, onOpenChange }: BookingDialogProps) => {
   };
 
   const handleBook = async () => {
-    if (!user || !selectedShowtime || selectedSeatIds.length !== seatQuantity) return;
+    if (!user || !selectedShowtime || !selectedTheater || selectedSeatIds.length !== seatQuantity) return;
 
     try {
       const result = await createBooking.mutateAsync({
         movie_id: movie.id,
+        theater_name: selectedTheater.name,
+        theater_location: selectedTheater.location,
         show_time: selectedShowtime.time,
         booking_date: bookingDate,
         seats: seatQuantity,
