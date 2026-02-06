@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://cinema-canvas-home.lovable.app
+**URL**:https://cinema-canvas-home.lovable.app
 
 ## How can I edit this code?
 
