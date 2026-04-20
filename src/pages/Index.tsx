@@ -1,14 +1,9 @@
+import { Link } from "react-router-dom";
 import { Folder, Image as ImageIcon, FileText, MessageSquare, Download, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-type FolderItem = {
-  id: string;
-  name: string;
-  description: string;
-  counts: { images: number; texts: number; pdfs: number; chats: number };
-};
+import { useFolders } from "@/lib/foldersStore";
 
 type PdfItem = {
   id: string;
@@ -19,33 +14,6 @@ type PdfItem = {
   size: string;
   poster: string;
 };
-
-const folders: FolderItem[] = [
-  {
-    id: "f1",
-    name: "Project Alpha",
-    description: "Design assets, briefs and team chat for the launch.",
-    counts: { images: 24, texts: 8, pdfs: 5, chats: 2 },
-  },
-  {
-    id: "f2",
-    name: "Marketing 2026",
-    description: "Campaign creatives, strategy docs and announcements.",
-    counts: { images: 42, texts: 12, pdfs: 9, chats: 3 },
-  },
-  {
-    id: "f3",
-    name: "Research Library",
-    description: "Whitepapers, reference notes and discussion threads.",
-    counts: { images: 6, texts: 30, pdfs: 18, chats: 1 },
-  },
-  {
-    id: "f4",
-    name: "Team Knowledge",
-    description: "Onboarding guides, SOPs and group conversations.",
-    counts: { images: 10, texts: 22, pdfs: 7, chats: 4 },
-  },
-];
 
 const pdfs: PdfItem[] = [
   {
@@ -105,9 +73,10 @@ const pdfs: PdfItem[] = [
 ];
 
 const Index = () => {
+  const folders = useFolders();
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
@@ -125,11 +94,7 @@ const Index = () => {
       </header>
 
       <main>
-        {/* Hero */}
-        <section
-          className="border-b border-border"
-          style={{ background: "var(--gradient-hero)" }}
-        >
+        <section className="border-b border-border" style={{ background: "var(--gradient-hero)" }}>
           <div className="container py-16 md:py-24 text-center">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
               Organize everything in <span className="text-gradient">Unaad</span>
@@ -138,19 +103,22 @@ const Index = () => {
               Featured folders with images, important text, PDFs and chat groups — all in one place.
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Button size="lg">Explore Folders</Button>
-              <Button size="lg" variant="outline">Browse PDFs</Button>
+              <Button size="lg" asChild>
+                <a href="#folders">Explore Folders</a>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href="#pdfs">Browse PDFs</a>
+              </Button>
             </div>
           </div>
         </section>
 
-        {/* Featured Folders */}
         <section id="folders" className="container py-12 md:py-16">
           <div className="flex items-end justify-between mb-6 md:mb-8">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold">Featured Folders</h2>
               <p className="text-sm md:text-base text-muted-foreground mt-1">
-                Manipulate images, text, PDFs and chat groups inside each folder.
+                Open a folder to add, rename or remove images, text, PDFs and chat messages.
               </p>
             </div>
           </div>
@@ -168,20 +136,20 @@ const Index = () => {
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <ImageIcon className="w-4 h-4" /> {f.counts.images} images
+                      <ImageIcon className="w-4 h-4" /> {f.images.length} images
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <FileText className="w-4 h-4" /> {f.counts.texts} texts
+                      <FileText className="w-4 h-4" /> {f.notes.length} texts
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <FileText className="w-4 h-4" /> {f.counts.pdfs} PDFs
+                      <FileText className="w-4 h-4" /> {f.pdfs.length} PDFs
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <MessageSquare className="w-4 h-4" /> {f.counts.chats} chats
+                      <MessageSquare className="w-4 h-4" /> {f.chat.length} chats
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm" className="w-full">
-                    Open folder
+                  <Button variant="secondary" size="sm" className="w-full" asChild>
+                    <Link to={`/folder/${f.id}`}>Open folder</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -189,7 +157,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* PDF Listings */}
         <section id="pdfs" className="container py-12 md:py-16 border-t border-border">
           <div className="flex items-end justify-between mb-6 md:mb-8">
             <div>
