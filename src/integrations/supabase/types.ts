@@ -269,6 +269,7 @@ export type Database = {
           duration: number
           genre: string
           id: string
+          is_available: boolean
           poster_url: string | null
           rating: string
           release_date: string
@@ -283,6 +284,7 @@ export type Database = {
           duration: number
           genre: string
           id?: string
+          is_available?: boolean
           poster_url?: string | null
           rating: string
           release_date: string
@@ -297,6 +299,7 @@ export type Database = {
           duration?: number
           genre?: string
           id?: string
+          is_available?: boolean
           poster_url?: string | null
           rating?: string
           release_date?: string
@@ -365,7 +368,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      refresh_movie_availability: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
