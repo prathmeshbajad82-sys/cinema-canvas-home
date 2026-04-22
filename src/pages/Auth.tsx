@@ -15,7 +15,19 @@ import { Mail, Lock, User, Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
-const phoneSchema = z.string().regex(/^\+[1-9]\d{6,14}$/, 'Use E.164 format, e.g. +14155552671');
+// Indian phone: exactly 10 digits, must not start with 0, after +91 prefix
+const indianPhoneSchema = z
+  .string()
+  .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number (no leading 0)');
+const RESEND_SECONDS = 30;
+
+const mapOtpError = (raw: string): string => {
+  const msg = raw.toLowerCase();
+  if (msg.includes('expired')) return 'This code has expired. Please request a new one.';
+  if (msg.includes('invalid') || msg.includes('token')) return 'Incorrect code. Please check the 6 digits and try again.';
+  if (msg.includes('rate') || msg.includes('too many')) return 'Too many attempts. Please wait before trying again.';
+  return raw || 'Verification failed. Please try again.';
+};
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,18 +38,29 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; otp?: string }>({});
 
-  // Phone OTP state
-  const [phone, setPhone] = useState('');
+  // Phone OTP state — Indian numbers only, +91 fixed
+  const [phone, setPhone] = useState(''); // 10 local digits only
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [otpInvalid, setOtpInvalid] = useState(false);
 
   const { signIn, signUp, signInWithPhone, verifyPhoneOtp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const fullPhone = `+91${phone}`;
+
   useEffect(() => {
     if (user) navigate('/');
   }, [user, navigate]);
+
+  // Countdown for resend button
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [resendIn]);
 
   const validateEmailForm = () => {
     const newErrors: typeof errors = {};
@@ -76,42 +99,60 @@ const Auth = () => {
     }
   };
 
-  const handleSendOtp = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    const result = phoneSchema.safeParse(phone);
+  const requestOtp = async () => {
+    const result = indianPhoneSchema.safeParse(phone);
     if (!result.success) {
       setErrors({ phone: result.error.errors[0].message });
-      return;
+      return false;
     }
     setErrors({});
     setIsLoading(true);
     try {
-      const { error } = await signInWithPhone(phone);
+      const { error } = await signInWithPhone(fullPhone);
       if (error) {
         toast({ variant: 'destructive', title: 'Failed to send code', description: mapAuthError(error) });
-      } else {
-        setOtpSent(true);
-        toast({ title: 'Code sent', description: `We sent a 6-digit code to ${phone}.` });
+        return false;
       }
+      setOtpSent(true);
+      setOtp('');
+      setOtpInvalid(false);
+      setResendIn(RESEND_SECONDS);
+      toast({ title: 'Code sent', description: `We sent a 6-digit code to ${fullPhone}.` });
+      return true;
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSendOtp = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    await requestOtp();
+  };
+
+  const handleResendOtp = async () => {
+    if (resendIn > 0 || isLoading) return;
+    await requestOtp();
+  };
+
   const handleVerifyOtp = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (otp.length !== 6) {
-      setErrors({ otp: 'Enter the 6-digit code' });
+      setErrors({ otp: 'Enter all 6 digits of the code' });
+      setOtpInvalid(true);
       return;
     }
     setErrors({});
+    setOtpInvalid(false);
     setIsLoading(true);
     try {
-      const { error } = await verifyPhoneOtp(phone, otp);
+      const { error } = await verifyPhoneOtp(fullPhone, otp);
       if (error) {
-        toast({ variant: 'destructive', title: 'Verification failed', description: mapAuthError(error) });
+        const friendly = mapOtpError(mapAuthError(error));
+        setErrors({ otp: friendly });
+        setOtpInvalid(true);
+        toast({ variant: 'destructive', title: 'Verification failed', description: friendly });
       } else {
-        notifyLoginConfirmed(phone);
+        notifyLoginConfirmed(fullPhone);
         navigate('/');
       }
     } finally {
@@ -143,44 +184,82 @@ const Auth = () => {
               {!otpSent ? (
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+14155552671"
-                        value={phone}
-                        onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
-                        className={`pl-10 ${errors.phone ? 'border-destructive' : ''}`}
-                      />
+                    <Label htmlFor="phone">Mobile number</Label>
+                    <div className="flex gap-2">
+                      <div className="flex items-center justify-center px-3 rounded-md border border-input bg-muted text-sm font-medium text-foreground select-none">
+                        +91
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="tel-national"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={phone}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setPhone(digits);
+                            setErrors((p) => ({ ...p, phone: undefined }));
+                          }}
+                          className={`pl-10 ${errors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                      </div>
                     </div>
                     {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                    <p className="text-xs text-muted-foreground">Use E.164 format including country code.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Indian numbers only. Enter 10 digits without the leading 0 — we add +91 automatically.
+                    </p>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || phone.length !== 10}>
                     {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending code...</> : 'Send code'}
                   </Button>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Enter 6-digit code sent to {phone}</Label>
+                    <Label>Enter 6-digit code sent to {fullPhone}</Label>
                     <div className="flex justify-center">
-                      <InputOTP maxLength={6} value={otp} onChange={(v) => { setOtp(v); setErrors((p) => ({ ...p, otp: undefined })); }}>
-                        <InputOTPGroup>
+                      <InputOTP
+                        maxLength={6}
+                        value={otp}
+                        onChange={(v) => {
+                          setOtp(v);
+                          setErrors((p) => ({ ...p, otp: undefined }));
+                          setOtpInvalid(false);
+                        }}
+                      >
+                        <InputOTPGroup className={otpInvalid ? '[&>div]:border-destructive [&>div]:ring-1 [&>div]:ring-destructive' : ''}>
                           {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
                         </InputOTPGroup>
                       </InputOTP>
                     </div>
-                    {errors.otp && <p className="text-sm text-destructive text-center">{errors.otp}</p>}
+                    {errors.otp && <p className="text-sm text-destructive text-center" role="alert">{errors.otp}</p>}
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
                     {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</> : 'Verify & Sign in'}
                   </Button>
-                  <Button type="button" variant="ghost" className="w-full" onClick={() => { setOtpSent(false); setOtp(''); }}>
-                    Use a different number
-                  </Button>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => { setOtpSent(false); setOtp(''); setOtpInvalid(false); setErrors({}); setResendIn(0); }}
+                    >
+                      Change number
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleResendOtp}
+                      disabled={resendIn > 0 || isLoading}
+                    >
+                      {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
+                    </Button>
+                  </div>
                 </form>
               )}
             </TabsContent>
