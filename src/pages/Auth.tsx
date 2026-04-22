@@ -27,7 +27,7 @@ const Auth = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; otp?: string }>({});
 
   // Phone OTP state
-  const [phone, setPhone] = useState('+91');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
 
@@ -149,19 +149,14 @@ const Auth = () => {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="+919876543210"
+                        placeholder="+14155552671"
                         value={phone}
-                        onChange={(e) => {
-                          let v = e.target.value.replace(/[^\d+]/g, '');
-                          if (!v.startsWith('+')) v = '+' + v.replace(/^\+*/, '');
-                          setPhone(v);
-                          setErrors((p) => ({ ...p, phone: undefined }));
-                        }}
+                        onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
                         className={`pl-10 ${errors.phone ? 'border-destructive' : ''}`}
                       />
                     </div>
                     {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                    <p className="text-xs text-muted-foreground">Include country code, e.g. <span className="font-mono">+91</span> for India followed by your 10-digit number.</p>
+                    <p className="text-xs text-muted-foreground">Use E.164 format including country code.</p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending code...</> : 'Send code'}
