@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,16 @@ const Auth = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const [otpInvalid, setOtpInvalid] = useState(false);
+  const otpContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus the first OTP slot input whenever an invalid/expired error is detected
+  const focusOtpInput = () => {
+    requestAnimationFrame(() => {
+      const input = otpContainerRef.current?.querySelector<HTMLInputElement>('input');
+      input?.focus();
+      input?.select?.();
+    });
+  };
 
   const { signIn, signUp, signInWithPhone, verifyPhoneOtp, user } = useAuth();
   const navigate = useNavigate();
@@ -139,6 +149,7 @@ const Auth = () => {
     if (otp.length !== 6) {
       setErrors({ otp: 'Enter all 6 digits of the code' });
       setOtpInvalid(true);
+      focusOtpInput();
       return;
     }
     setErrors({});
@@ -150,6 +161,8 @@ const Auth = () => {
         const friendly = mapOtpError(mapAuthError(error));
         setErrors({ otp: friendly });
         setOtpInvalid(true);
+        setOtp('');
+        focusOtpInput();
         toast({ variant: 'destructive', title: 'Verification failed', description: friendly });
       } else {
         notifyLoginConfirmed(fullPhone);
@@ -220,9 +233,10 @@ const Auth = () => {
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Enter 6-digit code sent to {fullPhone}</Label>
-                    <div className="flex justify-center">
+                    <Label htmlFor="otp-input">Enter 6-digit code sent to {fullPhone}</Label>
+                    <div className="flex justify-center" ref={otpContainerRef}>
                       <InputOTP
+                        id="otp-input"
                         maxLength={6}
                         value={otp}
                         onChange={(v) => {
@@ -230,13 +244,23 @@ const Auth = () => {
                           setErrors((p) => ({ ...p, otp: undefined }));
                           setOtpInvalid(false);
                         }}
+                        aria-invalid={otpInvalid}
+                        aria-describedby="otp-error"
                       >
                         <InputOTPGroup className={otpInvalid ? '[&>div]:border-destructive [&>div]:ring-1 [&>div]:ring-destructive' : ''}>
                           {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
                         </InputOTPGroup>
                       </InputOTP>
                     </div>
-                    {errors.otp && <p className="text-sm text-destructive text-center" role="alert">{errors.otp}</p>}
+                    <p
+                      id="otp-error"
+                      role="alert"
+                      aria-live="assertive"
+                      aria-atomic="true"
+                      className={`text-sm text-destructive text-center min-h-[1.25rem] ${errors.otp ? '' : 'sr-only'}`}
+                    >
+                      {errors.otp ?? ''}
+                    </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
                     {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</> : 'Verify & Sign in'}
