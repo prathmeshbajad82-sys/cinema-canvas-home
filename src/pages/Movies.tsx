@@ -52,7 +52,9 @@ const Movies = () => {
                       <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{m.duration}m</span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline">{m.genre}</Badge>
+                      {((m as any).genres ?? []).slice(0, 3).map((g: string) => (
+                        <Badge key={g} variant="outline">{g}</Badge>
+                      ))}
                     </div>
                     <Button size="sm" className="w-full mt-2" disabled={!available}>
                       {available ? 'Book now' : 'Unavailable'}
