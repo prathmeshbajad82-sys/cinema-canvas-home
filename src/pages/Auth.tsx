@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,16 @@ const Auth = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const [otpInvalid, setOtpInvalid] = useState(false);
+  const otpContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus the first OTP slot input whenever an invalid/expired error is detected
+  const focusOtpInput = () => {
+    requestAnimationFrame(() => {
+      const input = otpContainerRef.current?.querySelector<HTMLInputElement>('input');
+      input?.focus();
+      input?.select?.();
+    });
+  };
 
   const { signIn, signUp, signInWithPhone, verifyPhoneOtp, user } = useAuth();
   const navigate = useNavigate();
