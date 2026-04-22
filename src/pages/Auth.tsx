@@ -27,7 +27,7 @@ const Auth = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; otp?: string }>({});
 
   // Phone OTP state
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+91');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
 
